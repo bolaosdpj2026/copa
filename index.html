@@ -527,6 +527,8 @@ body { overflow-x: hidden; }
             <div style="display:flex;align-items:center;gap:4px"><input class="scoring-label-input" id="sl-vice" value="Acertar Vice-campeão" readonly><input class="scoring-input" type="number" id="sc-vice" value="12" min="0"></div>
             <div style="display:flex;align-items:center;gap:4px"><input class="scoring-label-input" id="sl-third" value="Acertar 3º lugar" readonly><input class="scoring-input" type="number" id="sc-third" value="8" min="0"></div>
             <div style="display:flex;align-items:center;gap:4px"><input class="scoring-label-input" id="sl-fourth" value="Acertar 4º lugar" readonly><input class="scoring-input" type="number" id="sc-fourth" value="5" min="0"></div>
+            <div style="display:flex;align-items:center;gap:4px"><input class="scoring-label-input" id="sl-artilheiro" value="Acertar Artilheiro" readonly><input class="scoring-input" type="number" id="sc-artilheiro" value="10" min="0"></div>
+            <div style="display:flex;align-items:center;gap:4px"><input class="scoring-label-input" id="sl-melhorJogador" value="Acertar Melhor Jogador" readonly><input class="scoring-input" type="number" id="sc-melhorJogador" value="10" min="0"></div>
           </div>
           <button class="admin-btn" style="margin-top:16px" onclick="saveScoring()">Salvar Configuração</button>
         </div>
@@ -838,8 +840,8 @@ let S = {
   koTeams: {},       // {mid: {home,away}} — admin-set teams for KO matches
   slotNames: {},     // {mid: string} — admin-editable slot label e.g. "SF4"
   flags: {},
-  scoring: {exact:5,winnerOne:3,winner:2,miss:0,g1:6,g2:4,g3:2,g4:1,s3:2,r16:8,qf:10,sf:12,tp:12,f:15,champ:20,vice:12,third:8,fourth:5},
-  scoringLabels: {exact:'Placar exato',winnerOne:'Vencedor + gols de um time',winner:'Vencedor correto (resultado)',miss:'Erro — vencedor errado',g1:'Acertar 1º lugar do grupo',g2:'Acertar 2º lugar do grupo',g3:'Acertar 3º lugar do grupo',g4:'Acertar 4º lugar do grupo',s3:'Acertar 3º classificado',r16:'Slot correto — Oitavas de Final',qf:'Slot correto — Quartas de Final',sf:'Slot correto — Semifinais',tp:'Slot correto — Disputa de 3º Lugar',f:'Slot correto — Final',champ:'Acertar Campeão',vice:'Acertar Vice-campeão',third:'Acertar 3º lugar',fourth:'Acertar 4º lugar'},
+  scoring: {exact:5,winnerOne:3,winner:2,miss:0,g1:6,g2:4,g3:2,g4:1,s3:2,r16:8,qf:10,sf:12,tp:12,f:15,champ:20,vice:12,third:8,fourth:5,artilheiro:10,melhorJogador:10},
+  scoringLabels: {exact:'Placar exato',winnerOne:'Vencedor + gols de um time',winner:'Vencedor correto (resultado)',miss:'Erro — vencedor errado',g1:'Acertar 1º lugar do grupo',g2:'Acertar 2º lugar do grupo',g3:'Acertar 3º lugar do grupo',g4:'Acertar 4º lugar do grupo',s3:'Acertar 3º classificado',r16:'Slot correto — Oitavas de Final',qf:'Slot correto — Quartas de Final',sf:'Slot correto — Semifinais',tp:'Slot correto — Disputa de 3º Lugar',f:'Slot correto — Final',champ:'Acertar Campeão',vice:'Acertar Vice-campeão',third:'Acertar 3º lugar',fourth:'Acertar 4º lugar',artilheiro:'Acertar Artilheiro',melhorJogador:'Acertar Melhor Jogador'},
   realThirds: [], // admin-set list of 8 qualified 3rd-place teams
   revealed: false,   // admin toggle: reveal group/KO picks in bets panels
   revealDeadline: '',// ISO datetime string for reveal cutoff
@@ -1139,6 +1141,13 @@ function totalPts(uid){
       }
     });
   }
+
+  // Artilheiro / Melhor Jogador scoring
+  ['artilheiro','melhorJogador'].forEach(k=>{
+    const real=(S.finalResults||{})[k];
+    const pick=(S.champPicks[uid]||{})[k];
+    if(real&&pick&&real.trim().toLowerCase()===pick.trim().toLowerCase()) p+=S.scoring[k]||10;
+  });
 
   return p;
 }
@@ -1933,6 +1942,15 @@ function attachMatchListeners(container, uid){
       const pts=calcPts(S.bets[uid][mid], S.realScores[mid]);
       const el=document.getElementById('pts-'+mid);
       if(el){ if(pts!=null){el.textContent=pts+' pts';el.className='pts-badge';}else{el.textContent='';el.className='';} }
+      markUnsaved();
+    });
+  });
+  container.querySelectorAll('.champ-free-inp').forEach(inp=>{
+    inp.addEventListener('input', function(){
+      if(!hasAcceptedRules()){ this.value=''; requireRulesAccept(()=>{}); return; }
+      const key=this.dataset.key;
+      if(!S.champPicks[uid]) S.champPicks[uid]={};
+      S.champPicks[uid][key]=this.value;
       markUnsaved();
     });
   });
@@ -3012,10 +3030,21 @@ function champPicksBlock(uid){
     {key:'vice',  label:'🥈 Vice-Campeão', teams:finalPicks, ready:finalReady},
     {key:'third', label:'🥉 3º Colocado',  teams:tpPicks,    ready:tpReady},
     {key:'fourth',label:'4️⃣ 4º Colocado',  teams:tpPicks,    ready:tpReady},
+    {key:'artilheiro',    label:'⚽ Artilheiro',     freeText:true},
+    {key:'melhorJogador', label:'🌟 Melhor Jogador',  freeText:true},
   ];
 
   const rows=slots.map(s=>{
     const cur=cp[s.key]||'';
+    if(s.freeText){
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;min-width:110px">${s.label}</span>
+        ${locked
+          ? `<span style="font-size:12px;color:var(--text-primary)">${cur||'—'}</span>`
+          : `<input type="text" class="champ-free-inp" data-key="${s.key}" value="${cur}" placeholder="Nome do jogador..." style="font-size:11px;padding:3px 6px;height:26px;flex:1;border:1px solid var(--border);border-radius:4px;font-family:Inter,sans-serif;background:#fff;outline:none">`
+        }
+      </div>`;
+    }
     if(!s.ready){
       return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
         <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;min-width:110px">${s.label}</span>
@@ -3291,6 +3320,16 @@ function renderAdminMatchesList(activePhase){
             <option value="">— Selecionar —</option>${opts(s.key)}
           </select>
         </div>`).join('')}
+        <div style="border-top:1px solid var(--border);margin:12px 0 10px"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Prêmios Individuais</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:13px;min-width:130px;color:var(--text-primary)">⚽ Artilheiro</span>
+          <input class="admin-input" id="fr_artilheiro" value="${fr.artilheiro||''}" placeholder="Nome do artilheiro..." style="flex:1;max-width:220px;padding:4px 8px;font-size:12px">
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:13px;min-width:130px;color:var(--text-primary)">🌟 Melhor Jogador</span>
+          <input class="admin-input" id="fr_melhorJogador" value="${fr.melhorJogador||''}" placeholder="Nome do melhor jogador..." style="flex:1;max-width:220px;padding:4px 8px;font-size:12px">
+        </div>
         <button class="admin-save-match" style="margin-top:8px" onclick="saveFinalResults()">💾 Salvar Classificação Final</button>
         <div id="fr-status" style="font-size:12px;color:var(--text-muted);margin-top:8px"></div>
       </div>`;
@@ -3439,9 +3478,14 @@ function saveFinalResults(){
     const el=document.getElementById('fr_'+k);
     if(el&&el.value) fr[k]=el.value;
   });
-  // Validate no duplicates
+  // Validate no duplicates among team picks
   const vals=Object.values(fr).filter(Boolean);
   if(new Set(vals).size!==vals.length){ showToast('Não pode ter o mesmo time em duas posições!','error'); return; }
+  // Save free-text fields
+  ['artilheiro','melhorJogador'].forEach(k=>{
+    const el=document.getElementById('fr_'+k);
+    if(el) fr[k]=el.value.trim();
+  });
   S.finalResults=fr;
   persist()
     .then(()=>{
@@ -3542,8 +3586,10 @@ function loadScoring(){
   document.getElementById('sc-vice').value=sc.vice;
   document.getElementById('sc-third').value=sc.third;
   document.getElementById('sc-fourth').value=sc.fourth;
+  const artEl=document.getElementById('sc-artilheiro'); if(artEl) artEl.value=sc.artilheiro||10;
+  const mjEl=document.getElementById('sc-melhorJogador'); if(mjEl) mjEl.value=sc.melhorJogador||10;
   // Load labels
-  const labelMap={exact:'exact','winner-one':'winnerOne',winner:'winner',miss:'miss',g1:'g1',g2:'g2',g3:'g3',g4:'g4',s3:'s3',r16:'r16',qf:'qf',sf:'sf',tp:'tp',f:'f',champ:'champ',vice:'vice',third:'third',fourth:'fourth'};
+  const labelMap={exact:'exact','winner-one':'winnerOne',winner:'winner',miss:'miss',g1:'g1',g2:'g2',g3:'g3',g4:'g4',s3:'s3',r16:'r16',qf:'qf',sf:'sf',tp:'tp',f:'f',champ:'champ',vice:'vice',third:'third',fourth:'fourth',artilheiro:'artilheiro',melhorJogador:'melhorJogador'};
   Object.entries(labelMap).forEach(([inputKey,stateKey])=>{
     const el=document.getElementById('sl-'+inputKey);
     if(el&&sl[stateKey]) el.value=sl[stateKey];
@@ -3569,9 +3615,11 @@ function saveScoring(){
     vice:+document.getElementById('sc-vice').value||12,
     third:+document.getElementById('sc-third').value||8,
     fourth:+document.getElementById('sc-fourth').value||5,
+    artilheiro:+(document.getElementById('sc-artilheiro')||{value:10}).value||10,
+    melhorJogador:+(document.getElementById('sc-melhorJogador')||{value:10}).value||10,
   };
   // Save labels
-  const labelMap={exact:'exact','winner-one':'winnerOne',winner:'winner',miss:'miss',g1:'g1',g2:'g2',g3:'g3',g4:'g4',s3:'s3',r16:'r16',qf:'qf',sf:'sf',tp:'tp',f:'f',champ:'champ',vice:'vice',third:'third',fourth:'fourth'};
+  const labelMap={exact:'exact','winner-one':'winnerOne',winner:'winner',miss:'miss',g1:'g1',g2:'g2',g3:'g3',g4:'g4',s3:'s3',r16:'r16',qf:'qf',sf:'sf',tp:'tp',f:'f',champ:'champ',vice:'vice',third:'third',fourth:'fourth',artilheiro:'artilheiro',melhorJogador:'melhorJogador'};
   if(!S.scoringLabels) S.scoringLabels={};
   Object.entries(labelMap).forEach(([inputKey,stateKey])=>{
     const el=document.getElementById('sl-'+inputKey);
