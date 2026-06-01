@@ -2332,6 +2332,8 @@ function showScoringPopup(){
       <div style="display:flex;justify-content:space-between"><span>${sl.vice||'Vice-Campeão'}</span><span style="color:#1a5c2a;font-weight:700">${sc.vice} pts</span></div>
       <div style="display:flex;justify-content:space-between"><span>${sl.third||'3º Colocado'}</span><span style="color:#1a5c2a;font-weight:700">${sc.third} pts</span></div>
       <div style="display:flex;justify-content:space-between"><span>${sl.fourth||'4º Colocado'}</span><span style="color:#1a5c2a;font-weight:700">${sc.fourth} pts</span></div>
+      <div style="display:flex;justify-content:space-between"><span>${sl.artilheiro||'Acertar Artilheiro'}</span><span style="color:#1a5c2a;font-weight:700">${sc.artilheiro||10} pts</span></div>
+      <div style="display:flex;justify-content:space-between"><span>${sl.melhorJogador||'Acertar Melhor Jogador'}</span><span style="color:#1a5c2a;font-weight:700">${sc.melhorJogador||10} pts</span></div>
     </div>`;
   document.getElementById('scoring-popup').style.display='flex';
 }
@@ -2810,6 +2812,8 @@ function renderRules(){
           <div style="display:flex;justify-content:space-between"><span>${sl.vice||'Vice-Campeão'}</span><span style="color:#1a5c2a;font-weight:700">${sc.vice||12} pts</span></div>
           <div style="display:flex;justify-content:space-between"><span>${sl.third||'3º Colocado'}</span><span style="color:#1a5c2a;font-weight:700">${sc.third||8} pts</span></div>
           <div style="display:flex;justify-content:space-between"><span>${sl.fourth||'4º Colocado'}</span><span style="color:#1a5c2a;font-weight:700">${sc.fourth||5} pts</span></div>
+          <div style="display:flex;justify-content:space-between"><span>${sl.artilheiro||'Acertar Artilheiro'}</span><span style="color:#1a5c2a;font-weight:700">${sc.artilheiro||10} pts</span></div>
+          <div style="display:flex;justify-content:space-between"><span>${sl.melhorJogador||'Acertar Melhor Jogador'}</span><span style="color:#1a5c2a;font-weight:700">${sc.melhorJogador||10} pts</span></div>
         </div>
       </div>`;
 
