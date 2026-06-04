@@ -283,6 +283,42 @@ body { overflow-x: hidden; }
 .toast.error { border-color: rgba(192,32,32,0.6); color: #c0392b; }
 .toast.success { border-color: rgba(34,168,74,0.5); color: var(--green-light); }
 
+/* ACERTO EXATO — animação de destaque */
+@keyframes exactPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,215,0,0.7); transform: scale(1); }
+  40%  { box-shadow: 0 0 0 8px rgba(255,215,0,0); transform: scale(1.03); }
+  100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); transform: scale(1); }
+}
+@keyframes exactFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.exact-hit {
+  animation: exactPulse 0.7s ease-out;
+  border: 1.5px solid var(--gold) !important;
+  background: rgba(255,215,0,0.08) !important;
+}
+.exact-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--gold); color: #1a1a1a; font-size: 9px; font-weight: 700;
+  padding: 1px 6px; border-radius: 3px; letter-spacing: 0.5px;
+  animation: exactFadeIn 0.4s ease-out;
+  white-space: nowrap;
+}
+/* Confete particles */
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(60px) rotate(360deg); opacity: 0; }
+}
+.confetti-wrap {
+  position: absolute; top: 0; left: 0; width: 100%; height: 0;
+  pointer-events: none; overflow: visible; z-index: 10;
+}
+.confetti-dot {
+  position: absolute; width: 6px; height: 6px; border-radius: 1px;
+  animation: confettiFall 0.9s ease-out forwards;
+}
+
 /* MOBILE */
 @media (max-width: 640px) {
   .header-logo { font-size: 14px; letter-spacing: 1px; }
@@ -395,6 +431,12 @@ body { overflow-x: hidden; }
       <button class="logout-btn" onclick="doLogout()">Sair</button>
     </div>
   </header>
+
+  <!-- BANNER DE PRAZO -->
+  <div id="deadline-banner" style="display:none;background:#1a5c2a;border-bottom:2px solid var(--gold);padding:8px 20px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <span id="deadline-banner-msg" style="font-size:13px;color:#fff;font-weight:500;flex:1;line-height:1.4"></span>
+    <button onclick="document.getElementById('deadline-banner').style.display='none'" style="background:transparent;border:1px solid rgba(255,255,255,0.4);color:rgba(255,255,255,0.8);font-size:11px;padding:3px 10px;border-radius:5px;cursor:pointer;white-space:nowrap;font-family:Inter,sans-serif;flex-shrink:0">Fechar ✕</button>
+  </div>
 
   <!-- MATCHES -->
   <div id="tab-matches" class="tab-content active">
@@ -1254,6 +1296,8 @@ function enterApp(user){
   document.getElementById('user-badge').textContent=user.name;
   document.getElementById('nav-admin').style.display=user.isAdmin?'':'none';
   showTab('matches');
+  // Checar notificações de prazo ao entrar
+  setTimeout(checkDeadlineBanner, 1500);
 }
 document.getElementById('login-user').onkeydown=e=>{ if(e.key==='Enter') doLogin(); };
 document.getElementById('login-pass').onkeydown=e=>{ if(e.key==='Enter') doLogin(); };
@@ -1577,11 +1621,12 @@ function matchCard(m, bets, uid){
     : `<button class="see-bets-btn" onclick="saveAllBets()" style="border-color:var(--green-dim);color:var(--green-light)">💾 Salvar</button>`;
 
   return `
-<div class="match-card${locked?' locked':''}">
+<div class="match-card${locked?' locked':''}${(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null)?' exact-hit':''}">
+  ${(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null)?`<div class="confetti-wrap" id="cf-${m.id}"></div>`:''}
   <div class="match-meta">
     <div class="match-meta-left">${dateStr} · ${timeStr}${countdownHtml}</div>
     <div class="match-meta-center">${centerContent}</div>
-    <div class="match-meta-right"><span class="match-status-badge ${locked?'badge-locked':'badge-open'}">${locked?'🔒 Fechado':'✏️ Aberto'}</span></div>
+    <div class="match-meta-right">${(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null)?'<span class="exact-badge">⭐ EXATO</span>':'<span class="match-status-badge '+( locked?'badge-locked':'badge-open')+'">'+(locked?'🔒 Fechado':'✏️ Aberto')+'</span>'}</div>
   </div>
   <div class="match-body">
     <div class="team-side">
@@ -2165,6 +2210,44 @@ function toggleBets(mid, btn){
   }
 }
 
+function spawnConfetti(containerId){
+  const wrap=document.getElementById(containerId);
+  if(!wrap) return;
+  const colors=['#ffd700','#2e7d32','#ff5050','#4fc3f7','#ce93d8','#ffffff'];
+  for(let i=0;i<14;i++){
+    const dot=document.createElement('div');
+    dot.className='confetti-dot';
+    dot.style.left=(10+Math.random()*80)+'%';
+    dot.style.background=colors[Math.floor(Math.random()*colors.length)];
+    dot.style.animationDelay=(Math.random()*0.4)+'s';
+    dot.style.animationDuration=(0.7+Math.random()*0.5)+'s';
+    dot.style.width=(4+Math.random()*5)+'px';
+    dot.style.height=dot.style.width;
+    dot.style.borderRadius=Math.random()>0.5?'50%':'1px';
+    wrap.appendChild(dot);
+    setTimeout(()=>dot.remove(), 1500);
+  }
+}
+
+function triggerExactHitEffects(){
+  document.querySelectorAll('[id^="cf-"]').forEach(el=>{
+    spawnConfetti(el.id);
+  });
+}
+
+
+  const panel=document.getElementById('bp-'+mid);
+  if(!panel) return;
+  if(panel.classList.contains('open')){
+    panel.classList.remove('open'); panel.innerHTML='';
+    btn.textContent='👁 Palpites';
+  } else {
+    panel.innerHTML=buildBetsPanel(mid);
+    panel.classList.add('open');
+    btn.textContent='Minimizar'; btn.style.color='#1a5c2a'; btn.style.borderColor='#1a5c2a';
+  }
+}
+
 function buildBetsPanel(mid){
   const participants=S.users.filter(u=>!u.isAdmin);
   if(!participants.length) return '<div style="color:var(--text-muted);font-size:12px;padding:6px 0">Nenhum participante.</div>';
@@ -2682,6 +2765,7 @@ function renderNextMatches(){
   el.innerHTML=html;
   attachMatchListeners(el, uid);
   updateCountdowns();
+  setTimeout(triggerExactHitEffects, 100);
 }
 
 function renderClosedMatches(){
@@ -3230,36 +3314,148 @@ function renderRanking(){
     document.getElementById('ranking-list').innerHTML='<div class="empty-state"><span class="empty-icon">🏆</span>Nenhum participante cadastrado ainda.</div>';
     return;
   }
-  const posClass=i=>i===0?'top1':i===1?'top2':i===2?'top3':'';
-  // Assign positions with tie handling: same pts = same rank, next rank skips
+
   let pos=1;
   const withPos=ranked.map((u,i)=>{
     if(i>0 && u.pts<ranked[i-1].pts) pos=i+1;
     return {...u, pos};
   });
   const currentUid=S.currentUser&&S.currentUser.id;
-  document.getElementById('ranking-list').innerHTML=`
+
+  // ——— PÓDIO: top 3 ———
+  const podium=withPos.slice(0,Math.min(3,withPos.length));
+  const rest=withPos.slice(Math.min(3,withPos.length));
+
+  // Reordena pódio: 2º | 1º | 3º
+  const podiumOrder=[podium[1]||null, podium[0]||null, podium[2]||null];
+
+  const podiumCfg=[
+    {medal:'🥈',color:'#a0a0a0',height:'80px',pts_color:'#a0a0a0',rank:2},
+    {medal:'🥇',color:'#ffd700',height:'100px',pts_color:'#b8860b',rank:1},
+    {medal:'🥉',color:'#cd7f32',height:'64px',pts_color:'#cd7f32',rank:3},
+  ];
+
+  function podiumCard(u, cfg){
+    if(!u) return '<div></div>';
+    const isMe=u.id===currentUid;
+    const nameBg=isMe?'#1a5c2a':'rgba(255,255,255,0.85)';
+    const nameColor=isMe?'#ffd700':'#1a1a1a';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0">
+      <div style="font-size:28px;line-height:1;margin-bottom:4px">${cfg.medal}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${cfg.pts_color};line-height:1">${u.pts}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">pts</div>
+      <div style="background:${nameBg};color:${nameColor};font-size:11px;font-weight:600;padding:4px 8px;border-radius:20px;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid ${cfg.color}">${u.name}</div>
+      <div style="width:100%;background:${cfg.color};opacity:0.25;border-radius:4px 4px 0 0;height:${cfg.height};margin-top:8px"></div>
+    </div>`;
+  }
+
+  const podiumHTML=`
+    <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:20px;padding:16px 8px 0;background:linear-gradient(180deg,#dff5e7 0%,#c2e8cc 100%);border-radius:12px;border:1px solid #b0d8b8;">
+      ${podiumOrder.map((u,i)=>podiumCard(u,podiumCfg[i])).join('')}
+    </div>`;
+
+  // ——— LISTA: 4º em diante ———
+  const listHTML=rest.length?`
     <div class="ranking-header-row"><span>#</span><span>Participante</span><span style="text-align:center">Pts</span></div>
-    ${withPos.map((u,i)=>{
+    ${rest.map(u=>{
       const isMe=u.id===currentUid;
-      const bg=isMe?'#1a5c2a':'#e8f5ec';
-      const nameCss=isMe?'color:#fff;font-weight:600':'color:#888;font-weight:500';
+      const bg=isMe?'#1a5c2a':'transparent';
+      const nameCss=isMe?'color:#fff;font-weight:600':'color:var(--text-secondary);font-weight:500';
       const ptsCss=isMe?'color:#ffd700':'color:#1a5c2a';
-      const posCss=u.pos===1?'color:#b8860b;font-family:Bebas Neue,sans-serif;font-size:14px':
-                   u.pos===2?'color:#a0a0a0;font-family:Bebas Neue,sans-serif;font-size:14px':
-                   u.pos===3?'color:#cd7f32;font-family:Bebas Neue,sans-serif;font-size:14px':
-                             'color:#aaa;font-family:Bebas Neue,sans-serif;font-size:14px';
       return `<div class="ranking-row" style="background:${bg}">
-        <div style="${posCss};text-align:center">${u.pos}</div>
+        <div style="color:#aaa;font-family:Bebas Neue,sans-serif;font-size:14px;text-align:center">${u.pos}</div>
         <div style="font-size:12px;${nameCss}">${u.name}</div>
         <div style="font-family:Bebas Neue,sans-serif;font-size:16px;${ptsCss};text-align:center">${u.pts}</div>
       </div>`;
-    }).join('')}`;
+    }).join('')}`:'';
+
+  document.getElementById('ranking-list').innerHTML=podiumHTML+listHTML;
 }
 
 // ============================================================
-// ADMIN — PARTICIPANTS
+// NOTIFICAÇÕES DE PRAZO
 // ============================================================
+function checkDeadlineBanner(){
+  const banner=document.getElementById('deadline-banner');
+  const msg=document.getElementById('deadline-banner-msg');
+  if(!banner||!msg||!S.currentUser||S.currentUser.isAdmin) return;
+
+  const uid=S.currentUser.id;
+  const now=new Date();
+  const WARN_WINDOW=3*3600*1000; // avisa 3h antes
+
+  // 1) Verifica palpites de longo prazo (classificação de grupos / campeão)
+  if(!isPicksLocked()){
+    let deadline=null;
+    if(S.picksLockMode==='deadline'&&S.picksLockDeadline){
+      deadline=new Date(S.picksLockDeadline+':00-03:00');
+    } else {
+      // firstmatch — usa data do primeiro jogo
+      const first=MATCHES[0];
+      const {date:fd,time:ft}=getMeta(first);
+      if(fd&&ft) deadline=new Date(`${fd}T${ft}:00-03:00`);
+    }
+    if(deadline&&deadline>now){
+      const diff=deadline-now;
+      if(diff<=WARN_WINDOW){
+        const mins=Math.round(diff/60000);
+        const h=Math.floor(mins/60), m=mins%60;
+        const timeStr=h>0?`${h}h${m>0?m+'min':''}`:m+'min';
+        const d=deadline.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+        const t=deadline.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        msg.innerHTML=`⏰ <strong>Atenção!</strong> Prazo para palpites de classificação encerra em <strong>${timeStr}</strong> (${d} às ${t}). Não esqueça de salvar!`;
+        banner.style.display='flex';
+        return;
+      }
+    }
+  }
+
+  // 2) Verifica jogos próximos sem aposta (apenas jogos de grupo abertos)
+  const groupMatches=MATCHES.filter(m=>!m.isKO);
+  const upcoming=groupMatches
+    .filter(m=>{
+      if(isLocked(m)) return false;
+      const {date:md,time:mt}=getMeta(m);
+      if(!md||!mt) return false;
+      const matchTime=new Date(`${md}T${mt}:00-03:00`);
+      const lockTime=S.lockMode==='before'
+        ?new Date(matchTime.getTime()-(S.minutesBefore||30)*60000)
+        :matchTime;
+      const diff=lockTime-now;
+      return diff>0 && diff<=WARN_WINDOW;
+    });
+
+  const withoutBet=upcoming.filter(m=>{
+    const bet=(S.bets[uid]||{})[m.id];
+    return !bet||bet.home==null||bet.away==null;
+  });
+
+  if(withoutBet.length>0){
+    const m=withoutBet[0]; // jogo mais urgente
+    const {date:md,time:mt}=getMeta(m);
+    const matchTime=new Date(`${md}T${mt}:00-03:00`);
+    const lockTime=S.lockMode==='before'
+      ?new Date(matchTime.getTime()-(S.minutesBefore||30)*60000)
+      :matchTime;
+    const diff=lockTime-now;
+    const mins=Math.round(diff/60000);
+    const h=Math.floor(mins/60), rem=mins%60;
+    const timeStr=h>0?`${h}h${rem>0?rem+'min':''}`:mins+'min';
+    const homeN=TN(m.home)||m.home;
+    const awayN=TN(m.away)||m.away;
+    const plural=withoutBet.length>1?` (e mais ${withoutBet.length-1})` : '';
+    msg.innerHTML=`⚠️ <strong>${homeN} × ${awayN}</strong>${plural} fecha em <strong>${timeStr}</strong> — você ainda não apostou!`;
+    banner.style.display='flex';
+    return;
+  }
+
+  // Nenhum alerta: esconde o banner
+  banner.style.display='none';
+}
+
+setInterval(checkDeadlineBanner, 60000); // checa a cada minuto
+
+
 function addParticipant(){
   const name=document.getElementById('np-name').value.trim();
   const login=document.getElementById('np-login').value.trim();
