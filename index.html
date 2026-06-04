@@ -2845,11 +2845,17 @@ function renderRules(){
         </div>
         <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Slots Mata-Mata</div>
         <div style="display:flex;flex-direction:column;gap:5px;font-size:13px;margin-bottom:14px">
+          ${sc.r32fase?`<div style="display:flex;justify-content:space-between"><span>${sl.r32fase||'Fase certa, slot errado — 2ª Fase'}</span><span style="color:#1a5c2a;font-weight:700">${sc.r32fase} pts</span></div>`:''}
           <div style="display:flex;justify-content:space-between"><span>${sl.r16||'Oitavas (slot correto)'}</span><span style="color:#1a5c2a;font-weight:700">${sc.r16||8} pts</span></div>
+          ${sc.r16fase?`<div style="display:flex;justify-content:space-between"><span>${sl.r16fase||'Fase certa, slot errado — Oitavas'}</span><span style="color:#1a5c2a;font-weight:700">${sc.r16fase} pts</span></div>`:''}
           <div style="display:flex;justify-content:space-between"><span>${sl.qf||'Quartas (slot correto)'}</span><span style="color:#1a5c2a;font-weight:700">${sc.qf||10} pts</span></div>
+          ${sc.qffase?`<div style="display:flex;justify-content:space-between"><span>${sl.qffase||'Fase certa, slot errado — Quartas'}</span><span style="color:#1a5c2a;font-weight:700">${sc.qffase} pts</span></div>`:''}
           <div style="display:flex;justify-content:space-between"><span>${sl.sf||'Semifinal (slot correto)'}</span><span style="color:#1a5c2a;font-weight:700">${sc.sf||12} pts</span></div>
+          ${sc.sffase?`<div style="display:flex;justify-content:space-between"><span>${sl.sffase||'Fase certa, slot errado — Semis'}</span><span style="color:#1a5c2a;font-weight:700">${sc.sffase} pts</span></div>`:''}
           <div style="display:flex;justify-content:space-between"><span>${sl.tp||'Disputa de 3º Lugar (slot correto)'}</span><span style="color:#1a5c2a;font-weight:700">${sc.tp||sc.sf||12} pts</span></div>
+          ${sc.tpfase?`<div style="display:flex;justify-content:space-between"><span>${sl.tpfase||'Fase certa, slot errado — 3º Lugar'}</span><span style="color:#1a5c2a;font-weight:700">${sc.tpfase} pts</span></div>`:''}
           <div style="display:flex;justify-content:space-between"><span>${sl.f||'Final (slot correto)'}</span><span style="color:#1a5c2a;font-weight:700">${sc.f||15} pts</span></div>
+          ${sc.ffase?`<div style="display:flex;justify-content:space-between"><span>${sl.ffase||'Fase certa, slot errado — Final'}</span><span style="color:#1a5c2a;font-weight:700">${sc.ffase} pts</span></div>`:''}
         </div>
         <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Palpites Especiais</div>
         <div style="display:flex;flex-direction:column;gap:5px;font-size:13px">
