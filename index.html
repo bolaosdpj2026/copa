@@ -1620,13 +1620,19 @@ function matchCard(m, bets, uid){
     ? (real&&real.home!=null ? `<span style="font-size:11px;color:#1a5c2a;font-weight:600">Resultado: ${real.home}×${real.away}</span>` : '')
     : `<button class="see-bets-btn" onclick="saveAllBets()" style="border-color:var(--green-dim);color:var(--green-light)">💾 Salvar</button>`;
 
+  const isExact=(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null);
+  const confettiDiv=isExact?'<div class="confetti-wrap" id="cf-'+m.id+'"></div>':'';
+  const statusBadge=isExact
+    ?'<span class="exact-badge">&#11088; EXATO</span>'
+    :'<span class="match-status-badge '+(locked?'badge-locked':'badge-open')+'">'+(locked?'&#128274; Fechado':'&#9999;&#65039; Aberto')+'</span>';
+
   return `
-<div class="match-card${locked?' locked':''}${(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null)?' exact-hit':''}">
-  ${(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null)?`<div class="confetti-wrap" id="cf-${m.id}"></div>`:''}
+<div class="match-card${locked?' locked':''}${isExact?' exact-hit':''}">
+  ${confettiDiv}
   <div class="match-meta">
     <div class="match-meta-left">${dateStr} · ${timeStr}${countdownHtml}</div>
     <div class="match-meta-center">${centerContent}</div>
-    <div class="match-meta-right">${(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null)?'<span class="exact-badge">⭐ EXATO</span>':'<span class="match-status-badge '+( locked?'badge-locked':'badge-open')+'">'+(locked?'🔒 Fechado':'✏️ Aberto')+'</span>'}</div>
+    <div class="match-meta-right">${statusBadge}</div>
   </div>
   <div class="match-body">
     <div class="team-side">
