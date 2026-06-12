@@ -3256,6 +3256,8 @@ function buildChampBetsPanel(){
     {key:'vice', label:'Vice'},
     {key:'third',label:'3º'},
     {key:'fourth',label:'4º'},
+    {key:'artilheiro',    label:'⚽ Artilheiro',    freeText:true},
+    {key:'melhorJogador', label:'🌟 Melhor Jogador', freeText:true},
   ];
   let html='';
   const fr=S.finalResults||{};
@@ -3266,43 +3268,71 @@ function buildChampBetsPanel(){
     const ptsMap={};
     participants.forEach(function(u){
       const pick=(S.champPicks[u.id]||{})[s.key];
-      if(!pick) return;
-      tally[pick]=(tally[pick]||0)+1;
-      if(!voterMap[pick]) voterMap[pick]=[];
-      // Check if this pick matches the real result
-      const slotPts=(hasFr&&fr[s.key]&&fr[s.key].trim().toLowerCase()===pick.trim().toLowerCase())?S.scoring[s.key]:null;
-      voterMap[pick].push({name:u.name, pts:slotPts});
-      ptsMap[pick]=slotPts;
+      if(!pick||pick.trim()==='') return;
+      const pickNorm=pick.trim();
+      tally[pickNorm]=(tally[pickNorm]||0)+1;
+      if(!voterMap[pickNorm]) voterMap[pickNorm]=[];
+      const realVal=(fr[s.key]||'').trim();
+      const slotPts=(hasFr&&realVal&&realVal.toLowerCase()===pickNorm.toLowerCase())?S.scoring[s.key]:null;
+      voterMap[pickNorm].push({name:u.name, pts:slotPts});
+      ptsMap[pickNorm]=slotPts;
     });
     const sorted=Object.entries(tally).sort(function(a,b){return b[1]-a[1];});
     if(!sorted.length) return;
     html+='<div style="margin-bottom:12px">';
     html+='<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600">'+s.label+'</div>';
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">';
-    sorted.forEach(function(entry){
-      const team=entry[0], count=entry[1];
-      const code=Object.keys(TEAMS).find(function(k){return TN(k)===team;});
-      const flagEl=code?'<div class="team-flag-wrap" style="width:18px;height:12px;flex-shrink:0">'+FE(code)+'</div>':'';
-      const slotPts=ptsMap[team];
-      const isCorrect=slotPts!=null;
-      const panelId='cbp_'+s.key+'_'+(code||team).replace(/[^a-zA-Z0-9]/g,'_');
-      const names=(voterMap[team]||[]).map(function(v){return v.name;}).slice().sort(function(a,b){return a.localeCompare(b,'pt');});
-      html+='<div style="display:flex;flex-direction:column">';
-      html+='<div style="background:var(--bg-card);border:1px solid '+(isCorrect?'var(--green-light)':'var(--border)')+';border-radius:5px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:5px;overflow:hidden" onclick="togglePickPanel(\''+panelId+'\',this.parentElement.querySelector(\'.pick-expand\'))">';
-      html+=flagEl;
-      html+='<span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+team+'</span>';
-      html+='<span style="color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0">'+count+'</span>';
-      if(isCorrect) html+='<span style="color:var(--green-light);font-size:10px;font-weight:700;flex-shrink:0">+'+slotPts+'</span>';
-      html+='<span style="color:var(--text-muted);font-size:9px;flex-shrink:0">▼</span>';
-      html+='</div>';
-      html+='<div class="pick-expand" id="'+panelId+'" style="display:none;background:var(--bg-card2);border:1px solid var(--border);border-top:none;border-radius:0 0 5px 5px;padding:4px 8px">';
-      names.forEach(function(n){
-        html+='<div style="font-size:10px;color:var(--text-secondary);padding:1px 0">• '+n+'</div>';
+    if(s.freeText){
+      // Texto livre — exibir como lista simples (sem bandeira)
+      html+='<div style="display:flex;flex-direction:column;gap:4px">';
+      sorted.forEach(function(entry){
+        const nome=entry[0], count=entry[1];
+        const slotPts=ptsMap[nome];
+        const isCorrect=slotPts!=null;
+        const names=(voterMap[nome]||[]).map(function(v){return v.name;}).slice().sort(function(a,b){return a.localeCompare(b,'pt');});
+        const panelId='cbp_'+s.key+'_'+nome.replace(/[^a-zA-Z0-9]/g,'_');
+        html+='<div style="display:flex;flex-direction:column">';
+        html+='<div style="background:var(--bg-card);border:1px solid '+(isCorrect?'var(--green-light)':'var(--border)')+';border-radius:5px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="togglePickPanel(\''+panelId+'\',this.parentElement.querySelector(\'.pick-expand\'))">';
+        html+='<span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nome+'</span>';
+        html+='<span style="color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0">'+count+'</span>';
+        if(isCorrect) html+='<span style="color:var(--green-light);font-size:10px;font-weight:700;flex-shrink:0">+'+slotPts+'</span>';
+        html+='<span style="color:var(--text-muted);font-size:9px;flex-shrink:0">▼</span>';
+        html+='</div>';
+        html+='<div class="pick-expand" id="'+panelId+'" style="display:none;background:var(--bg-card2);border:1px solid var(--border);border-top:none;border-radius:0 0 5px 5px;padding:4px 8px">';
+        names.forEach(function(n){
+          html+='<div style="font-size:10px;color:var(--text-secondary);padding:1px 0">• '+n+'</div>';
+        });
+        html+='</div>';
+        html+='</div>';
       });
       html+='</div>';
+    } else {
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">';
+      sorted.forEach(function(entry){
+        const team=entry[0], count=entry[1];
+        const code=Object.keys(TEAMS).find(function(k){return TN(k)===team;});
+        const flagEl=code?'<div class="team-flag-wrap" style="width:18px;height:12px;flex-shrink:0">'+FE(code)+'</div>':'';
+        const slotPts=ptsMap[team];
+        const isCorrect=slotPts!=null;
+        const panelId='cbp_'+s.key+'_'+(code||team).replace(/[^a-zA-Z0-9]/g,'_');
+        const names=(voterMap[team]||[]).map(function(v){return v.name;}).slice().sort(function(a,b){return a.localeCompare(b,'pt');});
+        html+='<div style="display:flex;flex-direction:column">';
+        html+='<div style="background:var(--bg-card);border:1px solid '+(isCorrect?'var(--green-light)':'var(--border)')+';border-radius:5px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:5px;overflow:hidden" onclick="togglePickPanel(\''+panelId+'\',this.parentElement.querySelector(\'.pick-expand\'))">';
+        html+=flagEl;
+        html+='<span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+team+'</span>';
+        html+='<span style="color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0">'+count+'</span>';
+        if(isCorrect) html+='<span style="color:var(--green-light);font-size:10px;font-weight:700;flex-shrink:0">+'+slotPts+'</span>';
+        html+='<span style="color:var(--text-muted);font-size:9px;flex-shrink:0">▼</span>';
+        html+='</div>';
+        html+='<div class="pick-expand" id="'+panelId+'" style="display:none;background:var(--bg-card2);border:1px solid var(--border);border-top:none;border-radius:0 0 5px 5px;padding:4px 8px">';
+        names.forEach(function(n){
+          html+='<div style="font-size:10px;color:var(--text-secondary);padding:1px 0">• '+n+'</div>';
+        });
+        html+='</div>';
+        html+='</div>';
+      });
       html+='</div>';
-    });
-    html+='</div></div>';
+    }
+    html+='</div>';
   });
   return html||'<div style="color:var(--text-muted);font-size:12px;padding:8px 0">Nenhum palpite registrado.</div>';
 }
