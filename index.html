@@ -1363,10 +1363,12 @@ function renderPicksByParticipant(){
   const participants=S.users.filter(u=>!u.isAdmin).sort((a,b)=>a.name.localeCompare(b.name,"pt"));
   const posLabels={pos1:'1º',pos2:'2º',pos3:'3º',pos4:'4º'};
   const champSlots=[
-    {key:'champ', label:'Campeão'},
-    {key:'vice',  label:'Vice'},
-    {key:'third', label:'3º Colocado'},
-    {key:'fourth',label:'4º Colocado'},
+    {key:'champ',        label:'Campeão'},
+    {key:'vice',         label:'Vice'},
+    {key:'third',        label:'3º Colocado'},
+    {key:'fourth',       label:'4º Colocado'},
+    {key:'artilheiro',   label:'⚽ Artilheiro'},
+    {key:'melhorJogador',label:'🌟 Melhor Jogador'},
   ];
   let html='';
   participants.forEach(u=>{
