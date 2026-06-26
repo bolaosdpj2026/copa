@@ -1140,16 +1140,13 @@ function totalPts(uid){
     const r=S.realScores[m.id], b=bets[m.id];
     const pts=calcPts(b,r,m); if(pts!==null) p+=pts;
 
-    // KO slot picks: exact slot = full points; right phase wrong slot = partial points (once per team per phase)
+    // KO slot picks: r32 não pontua por slot (pontuação da 2ª fase vem das colocações de grupo e 3ºs)
+    if(m.round==='r32') return;
+
+    // exact slot = full points
     const realTeams=S.koTeams[m.id]||{};
     const pick=koPicks[m.id]||{};
     const roundPtsVal=roundScore(m,'r32');
-    // Map round to partial-score key
-    const faseKeyMap={r32:'r32fase',r16:'r16fase',qf:'qffase',sf:'sffase',tp:'tpfase',final:'ffase'};
-    const faseKey=faseKeyMap[m.round]||null;
-    const fasePtsVal=faseKey?(S.scoring[faseKey]||0):0;
-    // Collect all real teams in this round (for phase-only matching)
-    // We'll use phaseCredited (built outside loop per round) — see below
     ['home','away'].forEach(side=>{
       const pickedName=(pick[side]||'').trim().toLowerCase();
       const realName=(realTeams[side]||'').trim().toLowerCase();
@@ -1161,7 +1158,8 @@ function totalPts(uid){
   });
 
   // Partial KO phase scoring: team reached the phase but in wrong slot → partial points (once per team per phase)
-  const rounds=['r32','r16','qf','sf','tp','final'];
+  // r32 não entra — pontuação da 2ª fase vem das colocações de grupo e 3ºs classificados
+  const rounds=['r16','qf','sf','tp','final'];
   const faseKeyMap2={r32:'r32fase',r16:'r16fase',qf:'qffase',sf:'sffase',tp:'tpfase',final:'ffase'};
   rounds.forEach(round=>{
     const fasePtsVal=S.scoring[faseKeyMap2[round]]||0;
