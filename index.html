@@ -1360,7 +1360,7 @@ function setPicksView(v){
 }
 
 function renderPicksByParticipant(){
-  const participants=S.users.filter(u=>!u.isAdmin).sort((a,b)=>a.name.localeCompare(b.name,"pt"));
+  const participants=S.users.filter(u=>!u.isAdmin).sort((a,b)=>a.name.localeCompare(b.name,'pt'));
   const posLabels={pos1:'1º',pos2:'2º',pos3:'3º',pos4:'4º'};
   const champSlots=[
     {key:'champ',        label:'Campeão'},
@@ -1370,50 +1370,131 @@ function renderPicksByParticipant(){
     {key:'artilheiro',   label:'⚽ Artilheiro'},
     {key:'melhorJogador',label:'🌟 Melhor Jogador'},
   ];
+  const koRounds=[
+    {round:'r16',  label:'Oitavas de Final'},
+    {round:'qf',   label:'Quartas de Final'},
+    {round:'sf',   label:'Semifinal'},
+    {round:'tp',   label:'Disputa de 3º Lugar'},
+    {round:'final',label:'Final'},
+  ];
+  const divider='<div style="border-top:1px solid var(--border);margin:8px 0 6px"></div>';
+  const sectionLabel='font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:8px 0 4px';
+
+  function flagImg(code){
+    return code&&S.flags[code]?'<img src="'+S.flags[code]+'" style="width:16px;height:11px;object-fit:contain;border-radius:1px;vertical-align:middle">':'';
+  }
+  function teamDisplay(nameOrCode){
+    if(!nameOrCode) return '—';
+    const code=Object.keys(TEAMS).find(function(k){return k===nameOrCode||TN(k)===nameOrCode;});
+    const flag=code?flagImg(code):'';
+    return flag+'<span style="margin-left:3px">'+(TN(nameOrCode)||nameOrCode)+'</span>';
+  }
+
   let html='';
-  participants.forEach(u=>{
+  participants.forEach(function(u){
     const cls=S.classes[u.id]||{};
     const cp=S.champPicks[u.id]||{};
-    html+=`<div class="match-card" style="padding:12px;margin-bottom:8px">
-      <div style="font-weight:700;font-size:14px;color:#1a5c2a;margin-bottom:10px">${u.name}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">`;
-    GROUPS.forEach(g=>{
+    const kp=S.koPicks[u.id]||{};
+    const grScoring={pos1:S.scoring.g1||3,pos2:S.scoring.g2||3,pos3:S.scoring.g3||3,pos4:S.scoring.g4||3};
+
+    html+='<div class="match-card" style="padding:12px;margin-bottom:8px">';
+    html+='<div style="font-weight:700;font-size:14px;color:#1a5c2a;margin-bottom:10px">'+u.name+'</div>';
+
+    // ── GRUPOS ──
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">';
+    GROUPS.forEach(function(g){
       const gcls=cls[g]||{};
       const grReal=(S.groupResults||{})[g]||{};
-      const grScoring={pos1:S.scoring.g1||6, pos2:S.scoring.g2||4, pos3:S.scoring.g3||2, pos4:S.scoring.g4||1};
-      const hasRealResults=Object.values(grReal).some(Boolean);
-      html+=`<div style="font-size:11px">
-        <span style="color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-size:10px">Grupo ${g}</span>
-        <div style="display:flex;flex-direction:column;gap:1px;margin-top:2px">
-          ${['pos1','pos2','pos3','pos4'].map(pos=>{
-            const pick=gcls[pos]||'';
-            const label=posLabels[pos];
-            const realPick=grReal[pos]||'';
-            let ptsHtml='';
-            if(hasRealResults){
-              const correct=pick&&realPick&&realPick===pick;
-              const pts=correct?grScoring[pos]:0;
-              ptsHtml=`<span style="min-width:32px;text-align:right;color:${correct?'var(--green-light)':'var(--text-muted)'};font-size:10px;flex-shrink:0">${pts} pts</span>`;
-            }
-            if(!pick) return `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="min-width:20px;display:inline-block">${label}:</span><span style="flex:1">—</span>${ptsHtml}</div>`;
-            const code=Object.keys(TEAMS).find(k=>k===pick);
-            const flag=code&&S.flags[code]?`<img src="${S.flags[code]}" style="width:16px;height:11px;object-fit:contain;border-radius:1px;vertical-align:middle">`:'';
-            return `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary)"><span style="min-width:20px;display:inline-block">${label}:</span>${flag}<span style="flex:1">${TN(pick)||pick}</span>${ptsHtml}</div>`;
-          }).join('')}
-        </div>
-      </div>`;
+      const hasReal=Object.values(grReal).some(Boolean);
+      html+='<div style="font-size:11px">';
+      html+='<span style="color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-size:10px">Grupo '+g+'</span>';
+      html+='<div style="display:flex;flex-direction:column;gap:1px;margin-top:2px">';
+      ['pos1','pos2','pos3','pos4'].forEach(function(pos){
+        const pick=gcls[pos]||'';
+        const label=posLabels[pos];
+        const realPick=grReal[pos]||'';
+        let ptsHtml='';
+        if(hasReal){
+          const correct=pick&&realPick&&realPick===pick;
+          const pts=correct?grScoring[pos]:0;
+          ptsHtml='<span style="min-width:32px;text-align:right;color:'+(correct?'var(--green-light)':'var(--text-muted)')+';font-size:10px;flex-shrink:0">'+pts+' pts</span>';
+        }
+        if(!pick){
+          html+='<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="min-width:20px;display:inline-block">'+label+':</span><span style="flex:1">—</span>'+ptsHtml+'</div>';
+        } else {
+          const code=Object.keys(TEAMS).find(function(k){return k===pick;});
+          const flag=flagImg(code);
+          html+='<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary)"><span style="min-width:20px;display:inline-block">'+label+':</span>'+flag+'<span style="flex:1">'+(TN(pick)||pick)+'</span>'+ptsHtml+'</div>';
+        }
+      });
+      html+='</div></div>';
     });
-    html+=`</div>
-      <div style="border-top:1px solid var(--border);margin:8px 0 6px"></div>
-      <div style="display:flex;flex-direction:column;gap:3px">
-        ${champSlots.map(s=>{
-          const pick=cp[s.key]||'';
-          const code=Object.keys(TEAMS).find(k=>TN(k)===pick||k===pick);
-          const flag=code&&S.flags[code]?`<img src="${S.flags[code]}" style="width:16px;height:11px;object-fit:contain;border-radius:1px;vertical-align:middle">`:'';
-          return `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-primary)"><span style="min-width:90px;display:inline-block;color:var(--text-muted)">${s.label}:</span>${flag}<strong>${pick||'—'}</strong></div>`;
-        }).join('')}
-      </div>
-    </div>`;
+    html+='</div>';
+
+    // ── 3ºS CLASSIFICADOS ──
+    const thirds=Object.values((cls['_thirds'])||{}).filter(Boolean);
+    if(thirds.length){
+      html+=divider;
+      html+='<div style="'+sectionLabel+'">3ºs Classificados</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">';
+      thirds.forEach(function(t){
+        const code=Object.keys(TEAMS).find(function(k){return k===t;});
+        const flag=flagImg(code);
+        const name=TN(t)||t;
+        const realThirds=S.realThirds||[];
+        const acertou=realThirds.length&&realThirds.includes(t);
+        html+='<span style="display:inline-flex;align-items:center;gap:3px;background:'+(acertou?'rgba(34,168,74,0.12)':'var(--bg-card2)')+';border:1px solid '+(acertou?'var(--green-light)':'var(--border)')+';border-radius:4px;padding:2px 6px;font-size:11px">'+flag+'<span>'+name+'</span></span>';
+      });
+      html+='</div>';
+    }
+
+    // ── MATA-MATA ──
+    const hasAnyKO=koRounds.some(function(r){
+      return MATCHES.filter(function(m){return m.isKO&&m.round===r.round;}).some(function(m){return (kp[m.id]||{}).home||(kp[m.id]||{}).away;});
+    });
+    if(hasAnyKO){
+      html+=divider;
+      html+='<div style="'+sectionLabel+'">Mata-Mata</div>';
+      koRounds.forEach(function(r){
+        const roundMatches=MATCHES.filter(function(m){return m.isKO&&m.round===r.round;});
+        const filled=roundMatches.filter(function(m){return (kp[m.id]||{}).home||(kp[m.id]||{}).away;});
+        if(!filled.length) return;
+        html+='<div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:5px 0 2px;font-weight:600">'+r.label+'</div>';
+        filled.forEach(function(m,i){
+          const pick=kp[m.id]||{};
+          const home=pick.home||'';
+          const away=pick.away||'';
+          const real=S.koTeams[m.id]||{};
+          const homeOk=home&&real.home&&home.trim().toLowerCase()===real.home.trim().toLowerCase();
+          const awayOk=away&&real.away&&away.trim().toLowerCase()===real.away.trim().toLowerCase();
+          const homeColor=real.home?(homeOk?'var(--green-light)':'var(--text-secondary)'):'var(--text-secondary)';
+          const awayColor=real.away?(awayOk?'var(--green-light)':'var(--text-secondary)'):'var(--text-secondary)';
+          html+='<div style="display:flex;align-items:center;gap:4px;font-size:11px;margin-bottom:2px">'
+            +'<span style="color:var(--text-muted);min-width:130px;font-size:10px;flex-shrink:0">'+r.label+' '+(i+1)+':</span>'
+            +'<span style="display:inline-flex;align-items:center;gap:3px;color:'+homeColor+'">'+teamDisplay(home)+'</span>'
+            +'<span style="color:var(--text-muted);margin:0 2px">×</span>'
+            +'<span style="display:inline-flex;align-items:center;gap:3px;color:'+awayColor+'">'+teamDisplay(away)+'</span>'
+            +'</div>';
+        });
+      });
+    }
+
+    // ── CAMPEÃO / VICE / 3º / 4º / ARTILHEIRO / MELHOR JOGADOR ──
+    html+=divider;
+    html+='<div style="display:flex;flex-direction:column;gap:3px">';
+    champSlots.forEach(function(s){
+      const pick=cp[s.key]||'';
+      const code=Object.keys(TEAMS).find(function(k){return TN(k)===pick||k===pick;});
+      const flag=code?flagImg(code):'';
+      const fr=S.finalResults||{};
+      const acertou=fr[s.key]&&pick&&fr[s.key].trim().toLowerCase()===pick.trim().toLowerCase();
+      const nameColor=acertou?'var(--green-light)':'var(--text-primary)';
+      html+='<div style="display:flex;align-items:center;gap:4px;font-size:11px">'
+        +'<span style="min-width:105px;color:var(--text-muted)">'+s.label+':</span>'
+        +flag+'<strong style="color:'+nameColor+'">'+(pick||'—')+'</strong>'
+        +'</div>';
+    });
+    html+='</div></div>';
   });
   return html||'<div style="color:var(--text-muted);padding:20px">Nenhum participante.</div>';
 }
