@@ -2055,15 +2055,17 @@ function koCard(m, uid){
   const homeEl = buildSide('home', homeAllowed, autoHome, isAutoHome);
   const awayEl = buildSide('away', awayAllowed, autoAway, isAutoAway);
 
-  // Calculate total pts: match score pts + slot pick pts
+  // Calculate total pts: match score pts + slot pick pts (r32 não pontua por slot)
   let totalKoPts = calcPts(bet, real);
   const roundPtsVal = roundScore(m, 'r32');
   let slotPts = 0;
-  if(adminTeams.home && pick.home){
-    if((pick.home||'').trim().toLowerCase()===(adminTeams.home||'').trim().toLowerCase()) slotPts+=roundPtsVal;
-  }
-  if(adminTeams.away && pick.away){
-    if((pick.away||'').trim().toLowerCase()===(adminTeams.away||'').trim().toLowerCase()) slotPts+=roundPtsVal;
+  if(m.round !== 'r32'){
+    if(adminTeams.home && pick.home){
+      if((pick.home||'').trim().toLowerCase()===(adminTeams.home||'').trim().toLowerCase()) slotPts+=roundPtsVal;
+    }
+    if(adminTeams.away && pick.away){
+      if((pick.away||'').trim().toLowerCase()===(adminTeams.away||'').trim().toLowerCase()) slotPts+=roundPtsVal;
+    }
   }
   if(totalKoPts!==null) totalKoPts+=slotPts;
   else if(slotPts>0) totalKoPts=slotPts;
@@ -2387,7 +2389,7 @@ function buildBetsPanel(mid){
     const bet=(S.bets[u.id]||{})[mid];
     let pts=calcPts(bet,real);
 
-    // For KO: add slot pick points
+    // For KO: add slot pick points (r32 não pontua por slot)
     let slotPts=0;
     let pickHomeFlag, pickAwayFlag;
     if(isKO){
@@ -2396,8 +2398,10 @@ function buildBetsPanel(mid){
       const pa=(pick.away||'').trim().toLowerCase();
       const rh=(realTeams.home||'').trim().toLowerCase();
       const ra=(realTeams.away||'').trim().toLowerCase();
-      if(rh && ph && ph===rh) slotPts+=roundPtsVal;
-      if(ra && pa && pa===ra) slotPts+=roundPtsVal;
+      if(match.round !== 'r32'){
+        if(rh && ph && ph===rh) slotPts+=roundPtsVal;
+        if(ra && pa && pa===ra) slotPts+=roundPtsVal;
+      }
       if(pts!==null) pts+=slotPts;
       else if(slotPts>0) pts=slotPts;
       // Flags from participant's pick
