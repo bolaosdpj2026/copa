@@ -2404,9 +2404,11 @@ function buildBetsPanel(mid){
       }
       if(pts!==null) pts+=slotPts;
       else if(slotPts>0) pts=slotPts;
-      // Flags from participant's pick
-      pickHomeFlag=flagByName(pick.home);
-      pickAwayFlag=flagByName(pick.away,true);
+      // Flags: usar o confronto real se definido, senão o palpite de slot
+      const homeTeam=realTeams.home||pick.home||'';
+      const awayTeam=realTeams.away||pick.away||'';
+      pickHomeFlag=flagByName(homeTeam);
+      pickAwayFlag=flagByName(awayTeam,true);
     } else {
       pickHomeFlag=flagByCode(homeCode);
       pickAwayFlag=flagByCode(awayCode,true);
