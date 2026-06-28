@@ -1148,11 +1148,14 @@ function totalPts(uid){
     const pick=koPicks[m.id]||{};
     const roundPtsVal=roundScore(m,'r32');
     ['home','away'].forEach(side=>{
-      const pickedName=(pick[side]||'').trim().toLowerCase();
-      const realName=(realTeams[side]||'').trim().toLowerCase();
-      if(!pickedName||!realName) return;
-      if(pickedName===realName){
-        p+=roundPtsVal; // exact slot
+      const raw=(pick[side]||'').trim();
+      const rawReal=(realTeams[side]||'').trim();
+      if(!raw||!rawReal) return;
+      // normalizar: tentar código e nome completo
+      const normPick=(TN(raw)||raw).toLowerCase();
+      const normReal=(TN(rawReal)||rawReal).toLowerCase();
+      if(normPick===normReal){
+        p+=roundPtsVal;
       }
     });
   });
@@ -1168,22 +1171,20 @@ function totalPts(uid){
     const realTeamsInRound=new Set();
     MATCHES.filter(m=>m.isKO&&m.round===round).forEach(m=>{
       const rt=S.koTeams[m.id]||{};
-      if(rt.home) realTeamsInRound.add(rt.home.trim().toLowerCase());
-      if(rt.away) realTeamsInRound.add(rt.away.trim().toLowerCase());
+      if(rt.home) realTeamsInRound.add((TN(rt.home)||rt.home).trim().toLowerCase());
+      if(rt.away) realTeamsInRound.add((TN(rt.away)||rt.away).trim().toLowerCase());
     });
     if(!realTeamsInRound.size) return;
-    // Collect teams the user picked for this round (all slots, home+away)
     const userPicksInRound=new Set();
-    // Also track which teams already got exact-slot points this round (don't double-count)
     const exactSlotsInRound=new Set();
     MATCHES.filter(m=>m.isKO&&m.round===round).forEach(m=>{
       const pick=koPicks[m.id]||{};
       const rt=S.koTeams[m.id]||{};
       ['home','away'].forEach(side=>{
-        const pn=(pick[side]||'').trim().toLowerCase();
-        const rn=(rt[side]||'').trim().toLowerCase();
+        const pn=(TN(pick[side]||'')||pick[side]||'').trim().toLowerCase();
+        const rn=(TN(rt[side]||'')||rt[side]||'').trim().toLowerCase();
         if(pn) userPicksInRound.add(pn);
-        if(pn&&rn&&pn===rn) exactSlotsInRound.add(pn); // already got full points
+        if(pn&&rn&&pn===rn) exactSlotsInRound.add(pn);
       });
     });
     // Award partial points for teams that: user picked in this round AND real team reached this round AND did NOT get exact slot points
@@ -1463,15 +1464,22 @@ function renderPicksByParticipant(){
           const home=pick.home||'';
           const away=pick.away||'';
           const real=S.koTeams[m.id]||{};
-          const homeOk=home&&real.home&&home.trim().toLowerCase()===real.home.trim().toLowerCase();
-          const awayOk=away&&real.away&&away.trim().toLowerCase()===real.away.trim().toLowerCase();
+          const normHome=(TN(home)||home).trim().toLowerCase();
+          const normAway=(TN(away)||away).trim().toLowerCase();
+          const normRealHome=(TN(real.home||'')||real.home||'').trim().toLowerCase();
+          const normRealAway=(TN(real.away||'')||real.away||'').trim().toLowerCase();
+          const homeOk=home&&real.home&&normHome===normRealHome;
+          const awayOk=away&&real.away&&normAway===normRealAway;
           const homeColor=real.home?(homeOk?'var(--green-light)':'var(--text-secondary)'):'var(--text-secondary)';
           const awayColor=real.away?(awayOk?'var(--green-light)':'var(--text-secondary)'):'var(--text-secondary)';
+          const slotPts=roundScore(m,'r32');
+          const homeBadge=homeOk&&slotPts?'<span style="color:var(--green-light);font-size:9px;font-weight:700;margin-left:2px">+'+slotPts+'</span>':'';
+          const awayBadge=awayOk&&slotPts?'<span style="color:var(--green-light);font-size:9px;font-weight:700;margin-left:2px">+'+slotPts+'</span>':'';
           html+='<div style="display:flex;align-items:center;gap:4px;font-size:11px;margin-bottom:2px">'
             +'<span style="color:var(--text-muted);min-width:130px;font-size:10px;flex-shrink:0">'+r.label+' '+(i+1)+':</span>'
-            +'<span style="display:inline-flex;align-items:center;gap:3px;color:'+homeColor+'">'+teamDisplay(home)+'</span>'
+            +'<span style="display:inline-flex;align-items:center;gap:2px;color:'+homeColor+'">'+teamDisplay(home)+homeBadge+'</span>'
             +'<span style="color:var(--text-muted);margin:0 2px">×</span>'
-            +'<span style="display:inline-flex;align-items:center;gap:3px;color:'+awayColor+'">'+teamDisplay(away)+'</span>'
+            +'<span style="display:inline-flex;align-items:center;gap:2px;color:'+awayColor+'">'+teamDisplay(away)+awayBadge+'</span>'
             +'</div>';
         });
       });
