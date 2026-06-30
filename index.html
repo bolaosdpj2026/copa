@@ -2095,15 +2095,26 @@ function koCard(m, uid){
 
   const ptsBadge=totalKoPts!=null?'<span class="pts-badge" id="pts-'+m.id+'">'+totalKoPts+' pts</span>':'<span id="pts-'+m.id+'"></span>';
   const kdFmt=kd?new Date(kd+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):' — ';
+
+  const isExact=(pts!=null && pts>=(S.scoring.exact||5) && real&&real.home!=null);
+  const confettiDiv=isExact?'<div class="confetti-wrap" id="cf-'+m.id+'"></div>':'';
+
   const centerMeta=locked
-    ? (locked?'<button class="see-bets-btn" onclick="toggleBets(\''+m.id+'\',this)">&#128065; Palpites</button>':'')
+    ? (real&&real.home!=null
+        ? '<span style="font-size:11px;color:#1a5c2a;font-weight:600">Resultado: '+real.home+'×'+real.away+'</span><br><button class="see-bets-btn" onclick="toggleBets(\''+m.id+'\',this)" style="margin-top:4px">&#128065; Palpites</button>'
+        : '<button class="see-bets-btn" onclick="toggleBets(\''+m.id+'\',this)">&#128065; Palpites</button>')
     : '<button class="see-bets-btn" onclick="saveAllBets()" style="border-color:var(--green-dim);color:var(--green-light)">&#128190; Salvar</button>';
 
-  return '<div class="match-card'+(locked?' locked':'')+'">'+
+  const statusBadge=isExact
+    ?'<span class="exact-badge">&#11088; EXATO</span>'
+    :'<span class="match-status-badge '+(locked?'badge-locked':'badge-open')+'">'+(locked?'&#128274; Fechado':'&#9999;&#65039; Aberto')+'</span>';
+
+  return '<div class="match-card'+(locked?' locked':'')+(isExact?' exact-hit':'')+'">'+
+    confettiDiv+
     '<div class="match-meta">'+
       '<div class="match-meta-left">'+kdFmt+' &middot; '+(kt||'—')+'</div>'+
       '<div class="match-meta-center">'+centerMeta+'</div>'+
-      '<div class="match-meta-right"><span class="match-status-badge '+(locked?'badge-locked':'badge-open')+'">'+(locked?'&#128274; Fechado':'&#9999;&#65039; Aberto')+'</span></div>'+
+      '<div class="match-meta-right">'+statusBadge+'</div>'+
     '</div>'+
     '<div style="text-align:center;font-family:Bebas Neue,sans-serif;font-size:11px;color:#1a5c2a;letter-spacing:2px;margin:2px 0 4px">'+((S.slotNames&&S.slotNames[m.id]!==undefined)?S.slotNames[m.id]:(m.slot||''))+'</div>'+
     '<div class="match-body">'+
@@ -2901,6 +2912,7 @@ function renderClosedMatches(){
   el.innerHTML=closedList.map(m=>m.isKO?koCard(m,uid):matchCard(m,bets,uid)).join('');
   attachMatchListeners(el, uid);
   updateCountdowns();
+  setTimeout(triggerExactHitEffects, 100);
 }
 
 // Keep old names as aliases so other code still works
