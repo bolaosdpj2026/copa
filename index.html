@@ -1459,6 +1459,7 @@ function renderPicksByParticipant(){
         const filled=roundMatches.filter(function(m){return (kp[m.id]||{}).home||(kp[m.id]||{}).away;});
         if(!filled.length) return;
         html+='<div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:5px 0 2px;font-weight:600">'+r.label+'</div>';
+        const faseKeyMap={r16:'r16fase',qf:'qffase',sf:'sffase',tp:'tpfase',final:'ffase'};
         filled.forEach(function(m,i){
           const pick=kp[m.id]||{};
           const home=pick.home||'';
@@ -1470,11 +1471,25 @@ function renderPicksByParticipant(){
           const normRealAway=(TN(real.away||'')||real.away||'').trim().toLowerCase();
           const homeOk=home&&real.home&&normHome===normRealHome;
           const awayOk=away&&real.away&&normAway===normRealAway;
-          const homeColor=real.home?(homeOk?'var(--green-light)':'var(--text-secondary)'):'var(--text-secondary)';
-          const awayColor=real.away?(awayOk?'var(--green-light)':'var(--text-secondary)'):'var(--text-secondary)';
+
+          // Verificar acerto parcial: time chegou à fase mas em slot diferente
+          const fasePts=S.scoring[faseKeyMap[m.round]]||0;
+          const allRealInRound=new Set();
+          MATCHES.filter(function(mm){return mm.isKO&&mm.round===m.round;}).forEach(function(mm){
+            const rt=S.koTeams[mm.id]||{};
+            if(rt.home) allRealInRound.add((TN(rt.home)||rt.home).trim().toLowerCase());
+            if(rt.away) allRealInRound.add((TN(rt.away)||rt.away).trim().toLowerCase());
+          });
+          const homePartial=!homeOk&&home&&fasePts&&allRealInRound.has(normHome);
+          const awayPartial=!awayOk&&away&&fasePts&&allRealInRound.has(normAway);
+
           const slotPts=roundScore(m,'r32');
-          const homeBadge=homeOk&&slotPts?'<span style="color:var(--green-light);font-size:9px;font-weight:700;margin-left:2px">+'+slotPts+'</span>':'';
-          const awayBadge=awayOk&&slotPts?'<span style="color:var(--green-light);font-size:9px;font-weight:700;margin-left:2px">+'+slotPts+'</span>':'';
+          const homeColor=real.home?(homeOk?'var(--green-light)':homePartial?'var(--gold)':'var(--text-secondary)'):'var(--text-secondary)';
+          const awayColor=real.away?(awayOk?'var(--green-light)':awayPartial?'var(--gold)':'var(--text-secondary)'):'var(--text-secondary)';
+          const homeBadge=homeOk&&slotPts?'<span style="color:var(--green-light);font-size:9px;font-weight:700;margin-left:2px">+'+slotPts+'</span>'
+            :homePartial&&fasePts?'<span style="color:var(--gold);font-size:9px;font-weight:700;margin-left:2px">+'+fasePts+'</span>':'';
+          const awayBadge=awayOk&&slotPts?'<span style="color:var(--green-light);font-size:9px;font-weight:700;margin-left:2px">+'+slotPts+'</span>'
+            :awayPartial&&fasePts?'<span style="color:var(--gold);font-size:9px;font-weight:700;margin-left:2px">+'+fasePts+'</span>':'';
           html+='<div style="display:flex;align-items:center;gap:4px;font-size:11px;margin-bottom:2px">'
             +'<span style="color:var(--text-muted);min-width:130px;font-size:10px;flex-shrink:0">'+r.label+' '+(i+1)+':</span>'
             +'<span style="display:inline-flex;align-items:center;gap:2px;color:'+homeColor+'">'+teamDisplay(home)+homeBadge+'</span>'
